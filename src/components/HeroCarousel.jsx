@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getHorizontalThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
+import { getBannerThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
 
 const INTERVAL_MS = 7000
 
@@ -31,15 +31,15 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
     )
   }
 
-  const show    = featuredShows[idx]
-  const badge   = getShowBadge(show)
+  const show     = featuredShows[idx]
+  const badge    = getShowBadge(show)
   const badgeCfg = badge ? BADGE_CONFIG[badge] : null
   const catName  = show.categories?.name?.toUpperCase() || 'SERIES'
 
   return (
     <div className="relative w-full h-[80vh] min-h-[520px] overflow-hidden select-none">
 
-      {/* ── Slide backgrounds (stacked, fading) ────────────── */}
+      {/* ── Slide backgrounds ───────────────────────────────── */}
       {featuredShows.map((s, i) => (
         <div
           key={s.id}
@@ -47,7 +47,7 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
           style={{ opacity: i === idx ? 1 : 0 }}
         >
           <img
-            src={getHorizontalThumbnail(s)}
+            src={getBannerThumbnail(s)}
             alt={s.title}
             className="w-full h-full object-cover object-center"
             onError={e => { e.target.src = `https://img.youtube.com/vi/${s.youtube_id}/hqdefault.jpg` }}
@@ -55,7 +55,7 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
         </div>
       ))}
 
-      {/* ── Overlay gradients ───────────────────────────────── */}
+      {/* ── Overlays ────────────────────────────────────────── */}
       <div className="absolute inset-0 hero-overlay pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-sf-dark to-transparent pointer-events-none" />
 
@@ -71,10 +71,19 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
           <span className="text-gray-300 text-xs tracking-[0.2em] uppercase">{catName}</span>
         </div>
 
-        {/* Title */}
-        <h1 className="font-bebas text-[5.5rem] md:text-[7.5rem] leading-none text-white tracking-wide drop-shadow-2xl mb-2">
-          {show.title}
-        </h1>
+        {/* Logo image OR fallback text title */}
+        {show.logo_url ? (
+          <img
+            src={show.logo_url}
+            alt={show.title}
+            className="max-h-32 md:max-h-44 w-auto object-contain mb-3 drop-shadow-2xl"
+            onError={e => { e.target.style.display = 'none' }}
+          />
+        ) : (
+          <h1 className="font-bebas text-[5.5rem] md:text-[7.5rem] leading-none text-white tracking-wide drop-shadow-2xl mb-2">
+            {show.title}
+          </h1>
+        )}
 
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -100,7 +109,7 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
           </p>
         )}
 
-        {/* Action buttons */}
+        {/* Buttons */}
         <div className="flex gap-3">
           <button
             onClick={() => onSelectShow(show)}
@@ -124,21 +133,15 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
         </div>
       </div>
 
-      {/* ── Carousel arrows ──────────────────────────────────── */}
+      {/* ── Arrows ──────────────────────────────────────────── */}
       {n > 1 && (
         <>
-          <button
-            onClick={prev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors"
-          >
+          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <button
-            onClick={next}
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors"
-          >
+          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -146,7 +149,7 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
         </>
       )}
 
-      {/* ── Dot indicators ───────────────────────────────────── */}
+      {/* ── Dot indicators ──────────────────────────────────── */}
       {n > 1 && (
         <div className="absolute bottom-10 right-10 flex items-center gap-2">
           {featuredShows.map((_, i) => (
