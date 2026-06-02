@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/films',   label: 'Films'   },
   { to: '/series',  label: 'Series'  },
   { to: '/my-flix', label: 'My Flix' },
+  { to: '/about',   label: 'About'   },
 ]
 
 export default function Navbar() {
@@ -50,16 +51,14 @@ export default function Navbar() {
           SENATEFLIX
         </Link>
 
-        {/* Nav links */}
+        {/* Nav links (desktop) */}
         <div className="hidden md:flex items-center gap-1 flex-1">
           {NAV_LINKS.map(({ to, label }) => (
             <Link
               key={to}
               to={to}
               className={`px-3 py-1 text-sm rounded transition-colors ${
-                isActive(to)
-                  ? 'text-white font-semibold'
-                  : 'text-gray-400 hover:text-white'
+                isActive(to) ? 'text-white font-semibold' : 'text-gray-400 hover:text-white'
               }`}
             >
               {label}
@@ -81,7 +80,7 @@ export default function Navbar() {
             </svg>
           </button>
 
-          {/* Profile */}
+          {/* Profile dropdown */}
           <div className="relative" ref={profileRef}>
             <button onClick={() => setProfileOpen(p => !p)} className="flex items-center gap-1.5">
               <div className="w-8 h-8 rounded bg-sf-red flex items-center justify-center">
