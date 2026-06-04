@@ -1,16 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase }      from '../lib/supabase'
-import Navbar            from '../components/Navbar'
-import HeroCarousel      from '../components/HeroCarousel'
-import ShowRow           from '../components/ShowRow'
-import TopShowsRow       from '../components/TopShowsRow'
-import ShowModal         from '../components/ShowModal'
+import { supabase }        from '../lib/supabase'
+import { cacheGet, cacheSet } from '../lib/cache'
+import Navbar              from '../components/Navbar'
+import HeroCarousel        from '../components/HeroCarousel'
+import ShowRow             from '../components/ShowRow'
+import TopShowsRow         from '../components/TopShowsRow'
+import ShowModal           from '../components/ShowModal'
 import { getWatchHistory } from '../lib/utils'
 
 const WEEKLY_THEMES = [
   'Senate Sundays', 'Monday Mayhem', 'Testimony Tuesdays',
   'Walkout Wednesday', 'Throwback Thursday', 'Fiery Friday', 'Scandal Saturday',
 ]
+
+// Slim select — NO nested seasons/episodes join
+// season_count and episode_count come from denormalized columns
+const SHOWS_SELECT = 'id, title, type, year, category_id, youtube_id, thumbnail_horizontal, thumbnail_vertical, logo_url, tags, badge_override, is_featured, featured_order, view_count, season_count, episode_count, created_at, categories(id, name)'
 
 export default function Home() {
   const [shows,         setShows]         = useState([])
@@ -23,24 +28,37 @@ export default function Home() {
 
   async function fetchAll() {
     setLoading(true)
+    setError(null)
+
     try {
+      // Try cache first — avoids Supabase round-trip on repeat visits
+      const cachedShows    = cacheGet('shows_all')
+      const cachedFeatured = cacheGet('shows_featured')
+
+      if (cachedShows && cachedFeatured) {
+        setShows(cachedShows)
+        setFeaturedShows(cachedFeatured)
+        setLoading(false)
+        return
+      }
+
       const [showsRes, featRes] = await Promise.all([
-        supabase
-          .from('shows')
-          .select('*, categories(id, name), seasons(id, season_number, episodes(id))')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('shows')
-          .select('*, categories(id, name), seasons(id, season_number, episodes(id))')
-          .eq('is_featured', true)
-          .order('featured_order', { ascending: true })
-          .limit(7),
+        supabase.from('shows').select(SHOWS_SELECT).order('created_at', { ascending: false }),
+        supabase.from('shows').select(SHOWS_SELECT).eq('is_featured', true).order('featured_order').limit(7),
       ])
+
       if (showsRes.error) throw showsRes.error
-      setShows(showsRes.data || [])
-      setFeaturedShows(featRes.data || [])
+
+      const allShows      = showsRes.data || []
+      const featuredData  = featRes.data  || []
+
+      cacheSet('shows_all',      allShows)
+      cacheSet('shows_featured', featuredData)
+
+      setShows(allShows)
+      setFeaturedShows(featuredData)
     } catch (e) {
-      console.error('[Senateflix] fetch error:', e)
+      console.error('[Senateflix]', e)
       setError(e.message)
     } finally {
       setLoading(false)
@@ -54,12 +72,12 @@ export default function Home() {
 
   const { personalizedRows, themedShows, newThisWeek } = useMemo(() => {
     try {
-      const history    = getWatchHistory()
-      const watchedSet = new Set(history)
+      const history      = getWatchHistory()
+      const watchedSet   = new Set(history)
       const watchedShows = shows.filter(s => watchedSet.has(s.id))
       const allUnwatched = shows.filter(s => !watchedSet.has(s.id))
-      const usedIds    = new Set()
-      const rows       = []
+      const usedIds      = new Set()
+      const rows         = []
 
       watchedShows.slice(0, 2).forEach(watched => {
         if (!watched.tags?.length) return
@@ -81,40 +99,33 @@ export default function Home() {
       const newWeek = shows.filter(s => !usedIds.has(s.id) && new Date(s.created_at) > oneWeekAgo).slice(0, 10)
 
       return { personalizedRows: rows, themedShows: themed, newThisWeek: newWeek }
-    } catch (e) {
-      console.error('[Senateflix] personalization error:', e)
+    } catch {
       return { personalizedRows: [], themedShows: shows.slice(0, 10), newThisWeek: [] }
     }
   }, [shows])
 
   const weeklyTitle = WEEKLY_THEMES[new Date().getDay()]
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-sf-dark flex items-center justify-center">
-        <p className="font-bebas text-sf-red text-6xl tracking-widest animate-pulse">SENATEFLIX</p>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-sf-dark flex items-center justify-center">
+      <p className="font-bebas text-sf-red text-6xl tracking-widest animate-pulse">SENATEFLIX</p>
+    </div>
+  )
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-sf-dark flex items-center justify-center flex-col gap-4">
-        <p className="font-bebas text-sf-red text-4xl">Something went wrong</p>
-        <p className="text-gray-500 text-sm max-w-md text-center">{error}</p>
-        <button onClick={fetchAll} className="bg-sf-red text-white px-6 py-2 rounded text-sm">Retry</button>
-      </div>
-    )
-  }
+  if (error) return (
+    <div className="min-h-screen bg-sf-dark flex items-center justify-center flex-col gap-4">
+      <p className="font-bebas text-sf-red text-4xl">Something went wrong</p>
+      <p className="text-gray-500 text-sm max-w-md text-center">{error}</p>
+      <button onClick={fetchAll} className="bg-sf-red text-white px-6 py-2 rounded text-sm">Retry</button>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-sf-dark">
       <Navbar />
       <HeroCarousel featuredShows={featuredShows} onSelectShow={setSelectedShow} />
       <div className="relative z-10 -mt-6 pb-20">
-        {topShows.length >= 3 && (
-          <TopShowsRow shows={topShows} onSelectShow={setSelectedShow} />
-        )}
+        {topShows.length >= 3 && <TopShowsRow shows={topShows} onSelectShow={setSelectedShow} />}
         {personalizedRows.map(row => (
           <ShowRow key={row.title} title={row.title} shows={row.shows} onSelectShow={setSelectedShow} />
         ))}

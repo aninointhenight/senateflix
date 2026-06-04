@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { supabase }         from '../lib/supabase'
-import Navbar               from '../components/Navbar'
-import ShowCard             from '../components/ShowCard'
-import ShowModal            from '../components/ShowModal'
+import { supabase }            from '../lib/supabase'
+import { cacheGet }            from '../lib/cache'
+import Navbar                  from '../components/Navbar'
+import ShowCard                from '../components/ShowCard'
+import ShowModal               from '../components/ShowModal'
 import { getWatchHistory, getWatchProgress } from '../lib/utils'
 
 export default function MyFlix() {
@@ -13,27 +14,29 @@ export default function MyFlix() {
   useEffect(() => { loadHistory() }, [])
 
   async function loadHistory() {
-    const history = getWatchHistory() // array of show IDs, most recent first
+    const history = getWatchHistory()
     if (!history.length) { setLoading(false); return }
 
-    const { data } = await supabase
-      .from('shows')
-      .select('*, categories(id, name), seasons(id, season_number, episodes(id))')
-      .in('id', history)
+    // Try to use cached shows first — avoids extra query
+    let showData = cacheGet('shows_all')
 
-    if (!data) { setLoading(false); return }
+    if (!showData) {
+      const { data } = await supabase
+        .from('shows')
+        .select('id, title, type, year, youtube_id, thumbnail_vertical, badge_override, season_count, episode_count, created_at, categories(id, name)')
+        .in('id', history)
+      showData = data || []
+    } else {
+      showData = showData.filter(s => history.includes(s.id))
+    }
 
-    // Reorder to match localStorage history order and augment with progress
     const shows = history
-      .map(id => data.find(s => s.id === id))
+      .map(id => showData.find(s => s.id === id))
       .filter(Boolean)
       .map(show => {
         if (show.type === 'series') {
           const progress = getWatchProgress(show.id)
-          const label = progress
-            ? `S${progress.season_number}E${progress.episode_number}`
-            : 'Continue'
-          return { ...show, _continueLabel: label }
+          return { ...show, _continueLabel: progress ? `S${progress.season_number}E${progress.episode_number}` : 'Continue' }
         }
         return { ...show, _continueLabel: 'Watched' }
       })
@@ -42,13 +45,11 @@ export default function MyFlix() {
     setLoading(false)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-sf-dark flex items-center justify-center">
-        <p className="font-bebas text-sf-red text-5xl animate-pulse">SENATEFLIX</p>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-sf-dark flex items-center justify-center">
+      <p className="font-bebas text-sf-red text-5xl animate-pulse">SENATEFLIX</p>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-sf-dark">
@@ -62,12 +63,7 @@ export default function MyFlix() {
             <h2 className="text-white font-bold text-lg mb-4">Continue Watching</h2>
             <div className="flex flex-wrap gap-3">
               {continueShows.map(show => (
-                <ShowCard
-                  key={show.id}
-                  show={show}
-                  onSelect={setSelectedShow}
-                  progressLabel={show._continueLabel}
-                />
+                <ShowCard key={show.id} show={show} onSelect={setSelectedShow} progressLabel={show._continueLabel} />
               ))}
             </div>
           </>
@@ -80,7 +76,9 @@ export default function MyFlix() {
         )}
       </div>
 
-      {selectedShow && <ShowModal show={selectedShow} onClose={() => { setSelectedShow(null); loadHistory() }} />}
+      {selectedShow && (
+        <ShowModal show={selectedShow} onClose={() => { setSelectedShow(null); loadHistory() }} />
+      )}
 
       <footer className="border-t border-gray-800/50 py-8 text-center">
         <p className="text-gray-700 text-xs">Senateflix — A satirical parody.</p>
