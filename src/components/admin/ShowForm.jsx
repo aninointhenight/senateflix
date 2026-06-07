@@ -8,6 +8,7 @@ const EMPTY = {
   title:                '',
   tagline:              '',
   description:          '',
+  starring:             '',
   year:                 new Date().getFullYear(),
   category_id:          '',
   youtube_id:           '',
@@ -66,6 +67,7 @@ export default function ShowForm({ show, onSaved, onCancel }) {
         title:                show.title                || '',
         tagline:              show.tagline              || '',
         description:          show.description          || '',
+        starring:             show.starring             || '',
         year:                 show.year                 || new Date().getFullYear(),
         category_id:          show.category_id          || '',
         youtube_id:           show.youtube_id           || '',
@@ -120,6 +122,7 @@ export default function ShowForm({ show, onSaved, onCancel }) {
       thumbnail_horizontal: form.thumbnail_horizontal.trim() || null,
       thumbnail_vertical:   form.thumbnail_vertical.trim()   || null,
       tags:                 form.tags.split(',').map(t => t.trim()).filter(Boolean),
+      starring:             form.starring.trim()             || null,
       badge_override:       form.badge_override              || null,
       is_featured:          form.is_featured,
       featured_order:       form.is_featured ? parseInt(form.featured_order) || 0 : 0,
@@ -237,6 +240,11 @@ export default function ShowForm({ show, onSaved, onCancel }) {
         <Field label="Description">
           <textarea value={form.description} onChange={e => set('description', e.target.value)}
             rows={3} placeholder="Full description..." className={`${inp} resize-none`} />
+        </Field>
+
+      <Field label="Starring (comma-separated)" hint="Shown in the modal. e.g. Ronald Dela Rosa, Sara Duterte">
+        <input value={form.starring} onChange={e => set('starring', e.target.value)}
+          placeholder="Name 1, Name 2, Name 3..." className={inp} />
         </Field>
 
         {/* Featured toggle */}
