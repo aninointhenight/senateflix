@@ -1,25 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase }        from '../lib/supabase'
+import { supabase }           from '../lib/supabase'
 import { cacheGet, cacheSet } from '../lib/cache'
-import Navbar              from '../components/Navbar'
-import HeroCarousel        from '../components/HeroCarousel'
-import ShowRow             from '../components/ShowRow'
-import TopShowsRow         from '../components/TopShowsRow'
-import ShowModal           from '../components/ShowModal'
-import { getWatchHistory } from '../lib/utils'
+import Navbar                 from '../components/Navbar'
+import HeroCarousel           from '../components/HeroCarousel'
+import ShowRow                from '../components/ShowRow'
+import TopShowsRow            from '../components/TopShowsRow'
+import CustomRow              from '../components/CustomRow'
+import ShowModal              from '../components/ShowModal'
+import { getWatchHistory }    from '../lib/utils'
 
-const WEEKLY_THEMES = [
-  'Senate Sundays', 'Monday Mayhem', 'Testimony Tuesdays',
-  'Walkout Wednesday', 'Throwback Thursday', 'Fiery Friday', 'Scandal Saturday',
-]
-
-// Slim select — NO nested seasons/episodes join
-// season_count and episode_count come from denormalized columns
-const SHOWS_SELECT = 'id, title, type, year, category_id, youtube_id, thumbnail_horizontal, thumbnail_vertical, logo_url, tags, badge_override, is_featured, featured_order, view_count, season_count, episode_count, created_at, categories(id, name)'
+// Slim select for card rows (no description needed)
+const SLIM = 'id, title, type, year, category_id, youtube_id, thumbnail_horizontal, thumbnail_vertical, logo_url, tags, badge_override, view_count, season_count, episode_count, created_at, categories(id, name)'
+// Featured select includes description + tagline for hero carousel
+const FEATURED = SLIM + ', description, tagline'
 
 export default function Home() {
   const [shows,         setShows]         = useState([])
   const [featuredShows, setFeaturedShows] = useState([])
+  const [customRows,    setCustomRows]    = useState([])
   const [selectedShow,  setSelectedShow]  = useState(null)
   const [loading,       setLoading]       = useState(true)
   const [error,         setError]         = useState(null)
@@ -29,34 +27,40 @@ export default function Home() {
   async function fetchAll() {
     setLoading(true)
     setError(null)
-
     try {
-      // Try cache first — avoids Supabase round-trip on repeat visits
       const cachedShows    = cacheGet('shows_all')
       const cachedFeatured = cacheGet('shows_featured')
+      const cachedRows     = cacheGet('custom_rows')
 
-      if (cachedShows && cachedFeatured) {
-        setShows(cachedShows)
-        setFeaturedShows(cachedFeatured)
-        setLoading(false)
-        return
-      }
-
-      const [showsRes, featRes] = await Promise.all([
-        supabase.from('shows').select(SHOWS_SELECT).order('created_at', { ascending: false }),
-        supabase.from('shows').select(SHOWS_SELECT).eq('is_featured', true).order('featured_order').limit(7),
+      const [showsRes, featRes, rowsRes] = await Promise.all([
+        cachedShows
+          ? Promise.resolve({ data: cachedShows })
+          : supabase.from('shows').select(SLIM).order('created_at', { ascending: false }),
+        cachedFeatured
+          ? Promise.resolve({ data: cachedFeatured })
+          : supabase.from('shows').select(FEATURED).eq('is_featured', true).order('featured_order').limit(7),
+        cachedRows
+          ? Promise.resolve({ data: cachedRows })
+          : supabase.from('custom_rows')
+              .select(`*, custom_row_shows(
+                id, display_order,
+                shows(id, title, type, year, youtube_id, thumbnail_vertical,
+                  badge_override, season_count, episode_count, created_at, categories(id, name))
+              )`)
+              .eq('active', true)
+              .order('display_order'),
       ])
 
       if (showsRes.error) throw showsRes.error
 
-      const allShows      = showsRes.data || []
-      const featuredData  = featRes.data  || []
-
-      cacheSet('shows_all',      allShows)
-      cacheSet('shows_featured', featuredData)
+      const allShows = showsRes.data || []
+      if (!cachedShows)    cacheSet('shows_all',      allShows)
+      if (!cachedFeatured) cacheSet('shows_featured', featRes.data || [])
+      if (!cachedRows)     cacheSet('custom_rows',    rowsRes.data || [])
 
       setShows(allShows)
-      setFeaturedShows(featuredData)
+      setFeaturedShows(featRes.data || [])
+      setCustomRows(rowsRes.data || [])
     } catch (e) {
       console.error('[Senateflix]', e)
       setError(e.message)
@@ -65,12 +69,14 @@ export default function Home() {
     }
   }
 
+  // Top Shows sorted by real view counts
   const topShows = useMemo(
     () => [...shows].sort((a, b) => (b.view_count || 0) - (a.view_count || 0)),
     [shows]
   )
 
-  const { personalizedRows, themedShows, newThisWeek } = useMemo(() => {
+  // Personalized "Since you watched X" rows
+  const personalizedRows = useMemo(() => {
     try {
       const history      = getWatchHistory()
       const watchedSet   = new Set(history)
@@ -89,22 +95,9 @@ export default function Home() {
           rows.push({ title: `Since you watched ${watched.title}`, shows: similar })
         }
       })
-
-      const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-      let themed = shows.filter(s => !usedIds.has(s.id) && new Date(s.created_at) > twoWeeksAgo).slice(0, 10)
-      if (themed.length < 3) themed = shows.filter(s => !usedIds.has(s.id)).slice(0, 10)
-      themed.forEach(s => usedIds.add(s.id))
-
-      const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-      const newWeek = shows.filter(s => !usedIds.has(s.id) && new Date(s.created_at) > oneWeekAgo).slice(0, 10)
-
-      return { personalizedRows: rows, themedShows: themed, newThisWeek: newWeek }
-    } catch {
-      return { personalizedRows: [], themedShows: shows.slice(0, 10), newThisWeek: [] }
-    }
+      return rows
+    } catch { return [] }
   }, [shows])
-
-  const weeklyTitle = WEEKLY_THEMES[new Date().getDay()]
 
   if (loading) return (
     <div className="min-h-screen bg-sf-dark flex items-center justify-center">
@@ -124,17 +117,32 @@ export default function Home() {
     <div className="min-h-screen bg-sf-dark">
       <Navbar />
       <HeroCarousel featuredShows={featuredShows} onSelectShow={setSelectedShow} />
+
       <div className="relative z-10 -mt-6 pb-20">
-        {topShows.length >= 3 && <TopShowsRow shows={topShows} onSelectShow={setSelectedShow} />}
+        {/* Top Shows — real view counts */}
+        {topShows.length >= 3 && (
+          <TopShowsRow shows={topShows} onSelectShow={setSelectedShow} />
+        )}
+
+        {/* Admin-curated custom rows */}
+        {customRows.map(row => (
+          <CustomRow key={row.id} row={row} onSelectShow={setSelectedShow} />
+        ))}
+
+        {/* Personalized rows (only if user has watched shows with matching tags) */}
         {personalizedRows.map(row => (
           <ShowRow key={row.title} title={row.title} shows={row.shows} onSelectShow={setSelectedShow} />
         ))}
-        {themedShows.length > 0 && (
-          <ShowRow title={weeklyTitle} shows={themedShows} onSelectShow={setSelectedShow} />
-        )}
-        {newThisWeek.length > 0 && (
-          <ShowRow title="New This Week" shows={newThisWeek} onSelectShow={setSelectedShow} />
-        )}
+
+        {/* New This Week fallback */}
+        {personalizedRows.length === 0 && customRows.length === 0 && (() => {
+          const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+          const newWeek = shows.filter(s => new Date(s.created_at) > oneWeekAgo).slice(0, 10)
+          return newWeek.length > 0
+            ? <ShowRow title="New This Week" shows={newWeek} onSelectShow={setSelectedShow} />
+            : null
+        })()}
+
         {!shows.length && (
           <div className="text-center py-32">
             <p className="font-bebas text-5xl text-gray-700 mb-2">Coming Soon</p>
@@ -142,7 +150,9 @@ export default function Home() {
           </div>
         )}
       </div>
+
       {selectedShow && <ShowModal show={selectedShow} onClose={() => setSelectedShow(null)} />}
+
       <footer className="border-t border-gray-800/50 py-8 text-center">
         <p className="font-bebas text-sf-red/40 text-2xl mb-1">SENATEFLIX</p>
         <p className="text-gray-700 text-xs">A satirical parody. Not affiliated with the Philippine Senate.</p>
