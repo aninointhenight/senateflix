@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 
 function renderInline(text) {
@@ -14,22 +14,25 @@ function MarkdownPreview({ content }) {
   const lines = content.split('\n')
   const elements = []
   let paraLines = []
+
   const flushPara = () => {
     if (!paraLines.length) return
+    const html = paraLines.map(l => renderInline(l)).join('<br/>')
     elements.push(
       <p key={`p-${elements.length}`}
         className="text-gray-300 leading-relaxed mb-3 text-sm"
-        dangerouslySetInnerHTML={{ __html: renderInline(paraLines.join('<br/>')) }}
+        dangerouslySetInnerHTML={{ __html: html }}
       />
     )
     paraLines = []
   }
+
   lines.forEach((line, i) => {
     if      (line.startsWith('# '))   { flushPara(); elements.push(<h1 key={i} className="font-bebas text-4xl text-white mt-6 mb-2 first:mt-0">{line.slice(2)}</h1>) }
     else if (line.startsWith('## '))  { flushPara(); elements.push(<h2 key={i} className="font-bebas text-2xl text-white mt-5 mb-2">{line.slice(3)}</h2>) }
     else if (line.startsWith('### ')) { flushPara(); elements.push(<h3 key={i} className="text-white font-bold mt-4 mb-1">{line.slice(4)}</h3>) }
     else if (line.trim() === '---')   { flushPara(); elements.push(<hr key={i} className="border-gray-700 my-4"/>) }
-    else if (line.trim() === '')      { flushPara() }
+    else if (line.trim() === '')      { flushPara(); elements.push(<div key={i} className="mb-2" />) }
     else                              { paraLines.push(line) }
   })
   flushPara()
@@ -42,6 +45,7 @@ export default function AboutManager() {
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [preview, setPreview] = useState(false)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     supabase.from('about_page').select('content').eq('id', 1).single()
@@ -53,6 +57,46 @@ export default function AboutManager() {
     await supabase.from('about_page').upsert({ id: 1, content, updated_at: new Date().toISOString() })
     setSaving(false); setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+  }
+
+  // Keyboard shortcuts: Ctrl+B = bold, Ctrl+I = italic, Ctrl+K = link
+  function handleKeyDown(e) {
+    if (!e.ctrlKey && !e.metaKey) return
+
+    const ta    = textareaRef.current
+    const start = ta.selectionStart
+    const end   = ta.selectionEnd
+    const sel   = content.slice(start, end)
+    const before = content.slice(0, start)
+    const after  = content.slice(end)
+
+    let wrapped = null
+    let cursorOffset = 0
+
+    if (e.key === 'b') {
+      e.preventDefault()
+      wrapped = sel ? `**${sel}**` : '**bold text**'
+      cursorOffset = sel ? 0 : -2
+    } else if (e.key === 'i') {
+      e.preventDefault()
+      wrapped = sel ? `*${sel}*` : '*italic text*'
+      cursorOffset = sel ? 0 : -1
+    } else if (e.key === 'k') {
+      e.preventDefault()
+      wrapped = sel ? `[${sel}](url)` : '[link text](url)'
+      cursorOffset = sel ? -1 : -5  // put cursor before closing )
+    }
+
+    if (wrapped !== null) {
+      const newContent = before + wrapped + after
+      setContent(newContent)
+      // Restore cursor position after React re-render
+      setTimeout(() => {
+        const newPos = start + wrapped.length + cursorOffset
+        ta.setSelectionRange(newPos, newPos)
+        ta.focus()
+      }, 0)
+    }
   }
 
   if (loading) return <p className="text-gray-600 text-sm">Loading...</p>
@@ -82,13 +126,22 @@ export default function AboutManager() {
           </div>
         ) : (
           <>
-            <textarea value={content} onChange={e => setContent(e.target.value)} rows={18}
-              placeholder={`Write anything here. Markdown supported:\n\n# Big heading\n## Smaller heading\n\n**bold**  *italic*\n\n[Link text](https://example.com)\n\n--- for divider`}
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={18}
+              placeholder={`Write anything here.\n\n# Big heading\n## Smaller heading\n\n**bold**  *italic*\n\n[Link text](https://example.com)\n\n--- for divider\n\nEnter once = line break\nEnter twice = new paragraph`}
               className="w-full bg-[#1f1f1f] border border-gray-700 text-white rounded-lg px-4 py-3 text-sm font-mono leading-relaxed focus:outline-none focus:border-gray-500 placeholder-gray-700 resize-y"
             />
-            <p className="text-gray-700 text-xs mt-1.5">
-              Tip: <code className="text-gray-500">[text](url)</code> · <code className="text-gray-500">**bold**</code> · <code className="text-gray-500">*italic*</code> · <code className="text-gray-500"># Heading</code> · <code className="text-gray-500">---</code> divider · Enter once = line break · Enter twice = new paragraph
-            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+              <span className="text-gray-700 text-xs">Shortcuts:</span>
+              <span className="text-gray-600 text-xs"><kbd className="bg-[#2a2a2a] px-1 rounded text-gray-500">Ctrl+B</kbd> bold</span>
+              <span className="text-gray-600 text-xs"><kbd className="bg-[#2a2a2a] px-1 rounded text-gray-500">Ctrl+I</kbd> italic</span>
+              <span className="text-gray-600 text-xs"><kbd className="bg-[#2a2a2a] px-1 rounded text-gray-500">Ctrl+K</kbd> link</span>
+              <span className="text-gray-700 text-xs ml-2">Syntax: <code className="text-gray-600">[text](url)</code> · <code className="text-gray-600">---</code> divider · <code className="text-gray-600"># Heading</code></span>
+            </div>
           </>
         )}
       </div>
