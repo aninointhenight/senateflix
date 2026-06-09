@@ -87,7 +87,7 @@ export default function AboutManager() {
               className="w-full bg-[#1f1f1f] border border-gray-700 text-white rounded-lg px-4 py-3 text-sm font-mono leading-relaxed focus:outline-none focus:border-gray-500 placeholder-gray-700 resize-y"
             />
             <p className="text-gray-700 text-xs mt-1.5">
-              Tip: <code className="text-gray-500">[text](url)</code> · <code className="text-gray-500">**bold**</code> · <code className="text-gray-500">*italic*</code> · <code className="text-gray-500"># Heading</code> · <code className="text-gray-500">---</code>
+              Tip: <code className="text-gray-500">[text](url)</code> · <code className="text-gray-500">**bold**</code> · <code className="text-gray-500">*italic*</code> · <code className="text-gray-500"># Heading</code> · <code className="text-gray-500">---</code> divider · Enter once = line break · Enter twice = new paragraph
             </p>
           </>
         )}

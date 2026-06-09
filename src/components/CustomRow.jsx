@@ -17,9 +17,9 @@ export default function CustomRow({ row, onSelectShow }) {
       <div className="relative">
         <div className="flex gap-2 overflow-x-auto px-4 md:px-12 pb-4 no-scrollbar">
 
-          {/* ── Collection poster tile (first) ───────────────── */}
-          <div className="shrink-0 w-32 md:w-36 rounded overflow-hidden relative cursor-default"
-            style={{ aspectRatio: '2/3' }}>
+          {/* ── Collection poster tile (first, wider than show cards) ─ */}
+          <div className="shrink-0 rounded overflow-hidden relative cursor-default border border-gray-700/50"
+            style={{ width: '160px', aspectRatio: '2/3' }}>
             {row.poster_url ? (
               <img src={row.poster_url} alt={row.title}
                 className="w-full h-full object-cover"
@@ -27,14 +27,9 @@ export default function CustomRow({ row, onSelectShow }) {
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-[#2a2a2a] to-[#0d0d0d] flex flex-col justify-end p-3">
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Collection</p>
                 <p className="text-white font-bebas text-2xl leading-tight">{row.title}</p>
               </div>
             )}
-            {/* Label overlay at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pointer-events-none">
-              <p className="text-gray-400 text-xs uppercase tracking-wider">Collection</p>
-            </div>
           </div>
 
           {/* ── Show cards ────────────────────────────────────── */}
