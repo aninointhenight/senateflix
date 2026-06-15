@@ -20,6 +20,7 @@ const EMPTY = {
   badge_override:       '',
   is_featured:          false,
   featured_order:       0,
+  fb_url: 				'',
 }
 
 const inp = 'w-full bg-[#1f1f1f] border border-gray-700 text-white rounded px-3 py-2.5 text-sm focus:outline-none focus:border-gray-500 placeholder-gray-600'
@@ -79,6 +80,7 @@ export default function ShowForm({ show, onSaved, onCancel }) {
         badge_override:       show.badge_override       || '',
         is_featured:          show.is_featured          || false,
         featured_order:       show.featured_order       || 0,
+		fb_url: 				show.fb_url 			|| '',
       })
       setYtPreview(show.youtube_id || '')
     }
@@ -126,6 +128,7 @@ export default function ShowForm({ show, onSaved, onCancel }) {
       badge_override:       form.badge_override              || null,
       is_featured:          form.is_featured,
       featured_order:       form.is_featured ? parseInt(form.featured_order) || 0 : 0,
+	  fb_url:				 form.fb_url.trim() 				|| null,
       updated_at:           new Date().toISOString(),
     }
 
@@ -200,6 +203,19 @@ export default function ShowForm({ show, onSaved, onCancel }) {
               className={inp}
             />
           </Field>
+		  
+			<Field
+			  label="Facebook Video URL (optional)"
+			  hint="Use this instead of YouTube for Facebook-only videos/livestreams."
+			>
+			  <input
+				type="url"
+				value={form.fb_url}
+				onChange={e => set('fb_url', e.target.value)}
+				placeholder="https://www.facebook.com/watch?v=..."
+				className={inp}
+			  />
+			</Field>
 
           <Field label="Start Timestamp (seconds)" hint="Auto-parsed from URL. Override if needed.">
             <input type="number" min="0" value={form.youtube_start}

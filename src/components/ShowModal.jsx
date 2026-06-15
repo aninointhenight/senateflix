@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   getShowBadge, BADGE_CONFIG,
-  getYouTubeEmbedUrl, getEpisodeEmbedUrl, getEpisodeThumbnail,
+  getEpisodeThumbnail,
   getWatchProgress, setWatchProgress, addToWatchHistory, formatTime,
+  getVideoEmbedUrl, getEpisodeVideoEmbedUrl, isFacebookUrl,
 } from '../lib/utils'
 
 async function trackView(showId) {
@@ -75,24 +76,31 @@ function FilmModal({ show, onClose }) {
 
   const badge    = getShowBadge(fullShow)
   const badgeCfg = badge ? BADGE_CONFIG[badge] : null
-  const embedUrl = getYouTubeEmbedUrl(fullShow)
+	const embedUrl = getVideoEmbedUrl(fullShow)
+	const isFB     = isFacebookUrl(fullShow.fb_url)
 
   const starringNames = fullShow.starring
     ?.split(',').map(s => s.trim()).filter(Boolean) || []
 
   return (
     <ModalShell onClose={onClose}>
-      {embedUrl ? (
-        <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
-          <iframe src={embedUrl} title={fullShow.title} className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen />
-        </div>
-      ) : (
-        <div className="aspect-video bg-[#0d0d0d] rounded-t-lg flex items-center justify-center">
-          <p className="text-gray-600 text-sm">No video available</p>
-        </div>
-      )}
+		{embedUrl ? (
+		  <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
+			<iframe
+			  src={embedUrl}
+			  title={fullShow.title}
+			  className="w-full h-full"
+			  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+			  allowFullScreen
+			  scrolling={isFB ? 'no' : undefined}
+			  style={isFB ? { border: 'none', overflow: 'hidden' } : undefined}
+			/>
+		  </div>
+		) : (
+		  <div className="aspect-video bg-[#0d0d0d] rounded-t-lg flex items-center justify-center">
+			<p className="text-gray-600 text-sm">No video available</p>
+		  </div>
+		)}
 
       <div className="p-6">
         <div className="flex items-start justify-between gap-4 mb-3">
@@ -204,7 +212,7 @@ function SeriesModal({ show, onClose }) {
       ) : view === 'player' && playing ? (
         <>
           <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
-            <iframe key={playing.episode.id} src={getEpisodeEmbedUrl(playing.episode)}
+            <iframe key={playing.episode.id} src={getEpisodeVideoEmbedUrl(playing.episode)}
               title={playing.episode.title} className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen />

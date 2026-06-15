@@ -115,3 +115,44 @@ export function formatTime(seconds) {
   if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
   return `${m}:${String(s).padStart(2,'0')}`
 }
+
+// ── Facebook video helpers ────────────────────────────────────
+// Add these to your existing utils.js
+
+const FB_APP_ID = '1276153117655984'
+
+// Detects if a URL is a Facebook video/live URL
+export function isFacebookUrl(input) {
+  if (!input) return false
+  return /facebook\.com\/(watch|video|live|[\w.]+\/videos|[\w.]+\/posts)/i.test(input)
+    || /fb\.watch\//i.test(input)
+}
+
+// Builds the Facebook embed iframe src
+export function getFacebookEmbedUrl(fbUrl) {
+  const encoded = encodeURIComponent(fbUrl)
+  return `https://www.facebook.com/plugins/video.php?href=${encoded}&app_id=${FB_APP_ID}&show_text=false&autoplay=false&width=800`
+}
+
+// Updated getYouTubeEmbedUrl — now handles both YT and FB
+// Replace your existing getYouTubeEmbedUrl with this version,
+// or call this one from ShowModal instead.
+export function getVideoEmbedUrl(show) {
+  if (show.fb_url) return getFacebookEmbedUrl(show.fb_url)
+  if (show.youtube_id) {
+    let url = `https://www.youtube.com/embed/${show.youtube_id}?autoplay=1&rel=0&modestbranding=1`
+    if (show.youtube_start) url += `&start=${show.youtube_start}`
+    return url
+  }
+  return null
+}
+
+export function getEpisodeVideoEmbedUrl(episode) {
+  if (episode.fb_url) return getFacebookEmbedUrl(episode.fb_url)
+  if (episode.youtube_id) {
+    let url = `https://www.youtube.com/embed/${episode.youtube_id}?autoplay=1&rel=0&modestbranding=1`
+    if (episode.youtube_start) url += `&start=${episode.youtube_start}`
+    return url
+  }
+  return null
+}

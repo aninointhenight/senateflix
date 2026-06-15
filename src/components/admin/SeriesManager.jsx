@@ -5,7 +5,7 @@ import { extractYouTubeId, extractYouTubeTimestamp } from '../../lib/utils'
 const EMPTY_SEASON  = { season_number: '', title: '', description: '' }
 const EMPTY_EPISODE = {
   episode_number: '', title: '', youtube_id: '', youtube_start: '',
-  air_date: '', description: '', thumbnail: '',
+  air_date: '', description: '', thumbnail: '', fb_url: '',
 }
 
 const inp = 'w-full bg-[#1a1a1a] border border-gray-700 text-white rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500 placeholder-gray-600'
@@ -143,6 +143,7 @@ export default function SeriesManager({ showId }) {
       air_date:       epForm.air_date  || null,
       description:    epForm.description.trim() || null,
       thumbnail:      epForm.thumbnail.trim()   || null,
+	  fb_url: 		epForm.fb_url?.trim() 		|| null,
     }
     if (editingEp) {
       await supabase.from('episodes').update(payload).eq('id', editingEp.id)
@@ -358,6 +359,16 @@ function EpisodeForm({ form, setField, onSave, onCancel, saving, isEditing }) {
             placeholder="Auto from URL" className={inp} />
         </div>
       </div>
+	  
+		<div>
+		  <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">
+			Facebook Video URL (optional)
+		  </label>
+		  <input type="url" value={form.fb_url || ''}
+			onChange={e => setField('fb_url', e.target.value)}
+			placeholder="https://www.facebook.com/watch?v=..."
+			className={inp} />
+		</div>
 
       <div>
         <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">Description</label>
