@@ -5,6 +5,7 @@ import Films           from './pages/Films'
 import Series          from './pages/Series'
 import MyFlix          from './pages/MyFlix'
 import About           from './pages/About'
+import Search          from './pages/Search'
 import Admin           from './pages/Admin'
 import DisclaimerPopup from './components/DisclaimerPopup'
 
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/series"  element={<Series />} />
         <Route path="/my-flix" element={<MyFlix />} />
         <Route path="/about"   element={<About  />} />
+        <Route path="/search"  element={<Search />} />
         <Route path="/admin"   element={<Admin  />} />
       </Routes>
     </BrowserRouter>
