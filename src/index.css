@@ -1,5 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    background-color: #141414;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar       { height: 4px; width: 6px; }
+  ::-webkit-scrollbar-track { background: #141414; }
+  ::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #666; }
+}
 
 @layer components {
+  /* ── Hero overlay ───────────────────────────────────────── */
+  .hero-overlay {
+    background:
+      linear-gradient(to right,
+        rgba(20,20,20,0.95) 0%,
+        rgba(20,20,20,0.70) 40%,
+        rgba(20,20,20,0.20) 70%,
+        transparent 100%
+      ),
+      linear-gradient(to top,
+        rgba(20,20,20,0.90) 0%,
+        transparent 40%
+      );
+  }
+
+  /* ── Navbar glass ───────────────────────────────────────── */
+  .navbar-glass {
+    background: rgba(10, 10, 10, 0.55);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .navbar-fade {
+    background: linear-gradient(to bottom, rgba(20,20,20,0.85) 0%, transparent 100%);
+  }
+
+  /* ── Dropdown glass ─────────────────────────────────────── */
+  .glass-dropdown {
+    background: rgba(18, 18, 18, 0.75);
+    backdrop-filter: blur(30px) saturate(1.8);
+    -webkit-backdrop-filter: blur(30px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
+  }
+
+  /* ── Modal glass backdrop ───────────────────────────────── */
+  .modal-backdrop {
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* ── Card hover ─────────────────────────────────────────── */
+  .card-hover {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.25s ease;
+  }
+  .card-hover:hover {
+    transform: scale(1.06) translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.06);
+    z-index: 10;
+  }
+
+  /* ── Modal animation ────────────────────────────────────── */
+  .modal-enter {
+    animation: modalIn 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.94) translateY(12px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  }
+
+  .modal-backdrop-enter {
+    animation: backdropIn 0.22s ease forwards;
+  }
+  @keyframes backdropIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ── Notification dropdown animation ───────────────────── */
+  .dropdown-enter {
+    animation: dropIn 0.2s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+  }
+  @keyframes dropIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+
+  /* ── Page fade ──────────────────────────────────────────── */
+  .page-fade {
+    animation: pageFadeIn 0.3s ease forwards;
+  }
+  @keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* ── Hero slide-up content ──────────────────────────────── */
+  .hero-content-enter {
+    animation: heroContentIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes heroContentIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  /* ── Scrollbar hide ─────────────────────────────────────── */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* ── Support button pulse ───────────────────────────────── */
+  .support-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  .support-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+  }
+  .support-btn:hover::after {
+    transform: translateX(100%);
+  }
+
   /* ── Mobile modal full-bleed adjustments ───────────────── */
   @media (max-width: 640px) {
     .modal-mobile-fix {
