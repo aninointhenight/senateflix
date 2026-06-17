@@ -9,9 +9,7 @@ import CustomRow              from '../components/CustomRow'
 import ShowModal              from '../components/ShowModal'
 import { getWatchHistory }    from '../lib/utils'
 
-// Slim select for card rows (no description needed)
-const SLIM = 'id, title, type, year, category_id, youtube_id, thumbnail_horizontal, thumbnail_vertical, logo_url, tags, badge_override, view_count, season_count, episode_count, created_at, categories(id, name)'
-// Featured select includes description + tagline for hero carousel
+const SLIM     = 'id, title, type, year, category_id, youtube_id, thumbnail_horizontal, thumbnail_vertical, logo_url, tags, badge_override, view_count, season_count, episode_count, created_at, categories(id, name)'
 const FEATURED = SLIM + ', description, tagline'
 
 export default function Home() {
@@ -69,13 +67,11 @@ export default function Home() {
     }
   }
 
-  // Top Shows sorted by real view counts
   const topShows = useMemo(
     () => [...shows].sort((a, b) => (b.view_count || 0) - (a.view_count || 0)),
     [shows]
   )
 
-  // Personalized "Since you watched X" rows
   const personalizedRows = useMemo(() => {
     try {
       const history      = getWatchHistory()
@@ -109,32 +105,29 @@ export default function Home() {
     <div className="min-h-screen bg-sf-dark flex items-center justify-center flex-col gap-4">
       <p className="font-bebas text-sf-red text-4xl">Something went wrong</p>
       <p className="text-gray-500 text-sm max-w-md text-center">{error}</p>
-      <button onClick={fetchAll} className="bg-sf-red text-white px-6 py-2 rounded text-sm">Retry</button>
+      <button onClick={fetchAll} className="bg-sf-red text-white px-6 py-2 rounded-full text-sm">Retry</button>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-sf-dark">
+    <div className="min-h-screen bg-sf-dark page-fade">
       <Navbar />
       <HeroCarousel featuredShows={featuredShows} onSelectShow={setSelectedShow} />
 
-      <div className="relative z-10 -mt-6 pb-20">
-        {/* Top Shows — real view counts */}
+      {/* Less negative margin on mobile since hero is shorter there */}
+      <div className="relative z-10 -mt-8 md:-mt-16 pb-20">
         {topShows.length >= 3 && (
           <TopShowsRow shows={topShows} onSelectShow={setSelectedShow} />
         )}
 
-        {/* Admin-curated custom rows */}
         {customRows.map(row => (
           <CustomRow key={row.id} row={row} onSelectShow={setSelectedShow} />
         ))}
 
-        {/* Personalized rows (only if user has watched shows with matching tags) */}
         {personalizedRows.map(row => (
           <ShowRow key={row.title} title={row.title} shows={row.shows} onSelectShow={setSelectedShow} />
         ))}
 
-        {/* New This Week fallback */}
         {personalizedRows.length === 0 && customRows.length === 0 && (() => {
           const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
           const newWeek = shows.filter(s => new Date(s.created_at) > oneWeekAgo).slice(0, 10)
@@ -153,7 +146,7 @@ export default function Home() {
 
       {selectedShow && <ShowModal show={selectedShow} onClose={() => setSelectedShow(null)} />}
 
-      <footer className="border-t border-gray-800/50 py-8 text-center">
+      <footer className="border-t border-white/5 py-8 text-center">
         <p className="font-bebas text-sf-red/40 text-2xl mb-1">SENATEFLIX</p>
         <p className="text-gray-700 text-xs">A satirical parody. Not affiliated with the Philippine Senate.</p>
       </footer>

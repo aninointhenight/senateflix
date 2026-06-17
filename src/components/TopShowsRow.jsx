@@ -1,33 +1,34 @@
-import { getVerticalThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
+import { getPosterThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
 
 export default function TopShowsRow({ shows, onSelectShow }) {
-  // Shows should already be sorted by view_count before passing in
   if (!shows?.length) return null
 
   return (
-    <div className="mb-10">
-      <h2 className="text-gray-400 font-bold text-xs uppercase tracking-[0.2em] mb-3 px-4 md:px-12">
+    <div className="mb-8 md:mb-10">
+      <h2 className="text-gray-400 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] mb-3 px-3 sm:px-4 md:px-12">
         Top Shows in the Philippines
       </h2>
-      <div className="flex gap-1 overflow-x-auto px-4 md:px-12 pb-4 no-scrollbar">
+
+      <div className="flex gap-0.5 sm:gap-1 overflow-x-auto px-3 sm:px-4 md:px-12 pb-4 no-scrollbar">
         {shows.slice(0, 10).map((show, i) => {
           const badge    = getShowBadge(show)
           const badgeCfg = badge ? BADGE_CONFIG[badge] : null
-          const thumb    = getVerticalThumbnail(show)
+          const thumb    = getPosterThumbnail(show)
 
           return (
             <div
               key={show.id}
               onClick={() => onSelectShow(show)}
               className="relative shrink-0 cursor-pointer group"
-              style={{ width: '150px' }}
+              style={{ width: 'clamp(96px, 22vw, 150px)' }}
             >
-              {/* Giant rank number */}
+              {/* Rank number — scales down on mobile, less left-bleed */}
               <div
-                className="absolute -left-4 bottom-2 font-bebas text-[7.5rem] leading-none select-none pointer-events-none z-10"
+                className="absolute -left-1.5 sm:-left-3 md:-left-4 bottom-2 font-bebas leading-none select-none pointer-events-none z-10"
                 style={{
+                  fontSize: 'clamp(3.5rem, 13vw, 7.5rem)',
                   color: 'transparent',
-                  WebkitTextStroke: '2px rgba(255,255,255,0.75)',
+                  WebkitTextStroke: 'clamp(1px, 0.3vw, 2px) rgba(255,255,255,0.75)',
                   textShadow: '3px 3px 10px rgba(0,0,0,0.95)',
                 }}
               >
@@ -35,7 +36,7 @@ export default function TopShowsRow({ shows, onSelectShow }) {
               </div>
 
               {/* Poster */}
-              <div className="relative aspect-[2/3] rounded overflow-hidden ml-10 bg-[#1a1a1a] group-hover:brightness-110 transition-all duration-200">
+              <div className="relative aspect-[2/3] rounded-lg md:rounded overflow-hidden ml-5 sm:ml-7 md:ml-10 bg-[#1a1a1a] group-hover:brightness-110 transition-all duration-200">
                 {thumb ? (
                   <img
                     src={thumb}
@@ -48,22 +49,20 @@ export default function TopShowsRow({ shows, onSelectShow }) {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
-                    <span className="text-gray-600 text-xs text-center px-2">{show.title}</span>
+                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] p-1">
+                    <span className="text-gray-600 text-[10px] text-center">{show.title}</span>
                   </div>
                 )}
 
-                {/* Badge at TOP */}
                 {badgeCfg && (
-                  <span className={`absolute top-2 left-1 right-1 text-center text-xs py-0.5 rounded font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
+                  <span className={`absolute top-1.5 left-1 right-1 text-center text-[9px] sm:text-xs py-0.5 rounded-full font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
                     {badgeCfg.label}
                   </span>
                 )}
 
-                {/* Play overlay on hover */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
-                  <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/90 flex items-center justify-center">
+                    <svg className="w-4 h-4 md:w-5 md:h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
