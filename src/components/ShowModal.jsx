@@ -29,11 +29,26 @@ function ModalShell({ onClose, children }) {
   const overlayRef = useRef(null)
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden'
+    // Robust scroll lock: preserve scroll position instead of just hiding overflow.
+    // Prevents the modal from appearing to "drift" to top/bottom based on
+    // where the page was scrolled when it opened.
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
+
     return () => {
-      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.right = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollY)
       window.removeEventListener('keydown', onKey)
     }
   }, [onClose])

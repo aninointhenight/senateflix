@@ -12,7 +12,12 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
   const goTo = useCallback((next) => {
     if (fading || n <= 1) return
     setFading(true)
-    setTimeout(() => { setIdx(next); setAnimKey(k => k + 1); setFading(false) }, 600)
+    // Swap index immediately so the crossfade starts right away —
+    // previously this waited the full 600ms before changing anything,
+    // which felt like a dead/laggy click.
+    setIdx(next)
+    setAnimKey(k => k + 1)
+    setTimeout(() => setFading(false), 350)
   }, [fading, n])
 
   const next = useCallback(() => goTo((idx + 1) % n), [goTo, idx, n])

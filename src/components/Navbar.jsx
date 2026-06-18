@@ -110,7 +110,15 @@ export default function Navbar() {
   const isActive = (to) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'navbar-glass' : 'navbar-fade'}`}>
+    <nav className="fixed top-0 left-0 right-0 z-50">
+      {/* Two stacked layers crossfade via opacity (not class-swap) —
+          fixes the white flash when scrolled background changes. */}
+      <div className="absolute inset-0 navbar-fade transition-opacity duration-500 pointer-events-none"
+        style={{ opacity: scrolled ? 0 : 1 }} />
+      <div className="absolute inset-0 navbar-glass transition-opacity duration-500 pointer-events-none"
+        style={{ opacity: scrolled ? 1 : 0 }} />
+
+      <div className="relative">
       <div className="flex items-center px-3 sm:px-4 md:px-12 h-14 md:h-16 gap-2 md:gap-6">
 
         {/* Logo */}
@@ -280,6 +288,7 @@ export default function Navbar() {
           className="shrink-0 px-2.5 py-1.5 text-xs text-sf-red border-b-2 border-transparent font-bold whitespace-nowrap">
           Support ♥
         </a>
+      </div>
       </div>
     </nav>
   )

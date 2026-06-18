@@ -1,20 +1,36 @@
+import { useState, useRef } from 'react'
 import { getPosterThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
+import HoverPreview from './HoverPreview'
+
+const HOVER_DELAY_MS = 1000
 
 export default function ShowCard({ show, onSelect, progressLabel }) {
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [anchorRect,      setAnchorRect]     = useState(null)
+  const hoverTimer = useRef(null)
+  const cardRef     = useRef(null)
+
   const badge    = getShowBadge(show)
   const badgeCfg = badge ? BADGE_CONFIG[badge] : null
   const thumb    = getPosterThumbnail(show)
-  const isSeries = show.type === 'series'
 
-  const seasonCount  = show.season_count  || 0
-  const episodeCount = show.episode_count || 0
-  const seriesLabel  = isSeries && episodeCount > 0
-    ? (seasonCount > 1 ? `${seasonCount} Seasons` : `${episodeCount} Episode${episodeCount !== 1 ? 's' : ''}`)
-    : null
+  function handleMouseEnter() {
+    hoverTimer.current = setTimeout(() => {
+      if (cardRef.current) setAnchorRect(cardRef.current.getBoundingClientRect())
+      setPreviewVisible(true)
+    }, HOVER_DELAY_MS)
+  }
+  function handleMouseLeave() {
+    clearTimeout(hoverTimer.current)
+    setPreviewVisible(false)
+  }
 
   return (
     <div
+      ref={cardRef}
       onClick={() => onSelect(show)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="card-hover relative shrink-0 cursor-pointer rounded-lg md:rounded-xl overflow-hidden group"
       style={{ width: 'clamp(96px, 26vw, 144px)' }}
     >
@@ -38,9 +54,11 @@ export default function ShowCard({ show, onSelect, progressLabel }) {
           </span>
         )}
 
+        {/* Simplified inline overlay — title + play icon only.
+            Tagline / season / episode info moved into HoverPreview (1s delay). */}
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }}
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)' }}
         >
           <div
             className="absolute top-2 right-2 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 delay-75"
@@ -51,14 +69,11 @@ export default function ShowCard({ show, onSelect, progressLabel }) {
             </svg>
           </div>
           <p className="text-white font-bold text-[11px] md:text-xs leading-tight line-clamp-2 drop-shadow">{show.title}</p>
-          {show.year && <p className="text-green-400 text-[10px] md:text-xs mt-0.5">{show.year}</p>}
-          {seriesLabel && <p className="text-gray-400 text-[10px] md:text-xs mt-0.5 hidden sm:block">📺 {seriesLabel}</p>}
         </div>
       </div>
 
-      {seriesLabel && (
-        <div className="bg-[#0d0d0d] text-gray-500 text-[10px] md:text-xs text-center py-1 leading-none">{seriesLabel}</div>
-      )}
+      <HoverPreview show={show} visible={previewVisible} anchorRect={anchorRect} />
+
       {progressLabel && (
         <div className="bg-[#0d0d0d] text-sf-red text-[10px] md:text-xs text-center py-1 leading-none font-semibold">▶ {progressLabel}</div>
       )}

@@ -22,14 +22,15 @@ export default function ShowRow({ title, shows, onSelectShow }) {
   if (!shows?.length) return null
 
   return (
-    <div className="mb-10 group/row">
-      {/* Row heading */}
-      <h2 className="text-white font-bold text-lg md:text-xl mb-3 px-4 md:px-12">
+    <div className="mb-8 md:mb-10 group/row">
+      <h2 className="text-white font-bold text-base md:text-xl mb-3 px-3 sm:px-4 md:px-12">
         {title}
       </h2>
 
+      {/* Note: overflow-x-auto + overflow-y-visible lets the hover preview
+          (which pops out to the right of a card) escape the row's clipping
+          on the vertical axis, while still scrolling horizontally. */}
       <div className="relative">
-        {/* Left arrow */}
         {canLeft && (
           <button
             onClick={() => scroll(-1)}
@@ -41,7 +42,6 @@ export default function ShowRow({ title, shows, onSelectShow }) {
           </button>
         )}
 
-        {/* Right arrow */}
         {canRight && (
           <button
             onClick={() => scroll(1)}
@@ -53,11 +53,10 @@ export default function ShowRow({ title, shows, onSelectShow }) {
           </button>
         )}
 
-        {/* Scrollable cards */}
         <div
           ref={rowRef}
           onScroll={updateArrows}
-          className="flex gap-2 overflow-x-auto px-4 md:px-12 pb-4 no-scrollbar"
+          className="flex gap-2 overflow-x-auto px-3 sm:px-4 md:px-12 pb-4 pt-2 no-scrollbar"
         >
           {shows.map(show => (
             <ShowCard key={show.id} show={show} onSelect={onSelectShow} />
