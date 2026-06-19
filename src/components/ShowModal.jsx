@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import {
   getDisplayBadge,
@@ -52,7 +53,7 @@ function ModalShell({ onClose, children }) {
     }
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
       onClick={(e) => e.target === overlayRef.current && onClose()}
@@ -78,7 +79,8 @@ function ModalShell({ onClose, children }) {
         </button>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
