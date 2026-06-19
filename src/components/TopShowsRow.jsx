@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
-import { getPosterThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
+import { getPosterThumbnail, getDisplayBadge } from '../lib/utils'
 import HoverPreview from './HoverPreview'
 
-const HOVER_DELAY_MS = 1000
+const HOVER_DELAY_MS = 700
 
 export default function TopShowsRow({ shows, onSelectShow }) {
   if (!shows?.length) return null
@@ -28,9 +28,8 @@ function TopShowItem({ show, rank, onSelect }) {
   const hoverTimer = useRef(null)
   const itemRef     = useRef(null)
 
-  const badge    = getShowBadge(show)
-  const badgeCfg = badge ? BADGE_CONFIG[badge] : null
-  const thumb    = getPosterThumbnail(show)
+  const display = getDisplayBadge(show)
+  const thumb   = getPosterThumbnail(show)
 
   function handleMouseEnter() {
     hoverTimer.current = setTimeout(() => {
@@ -52,7 +51,6 @@ function TopShowItem({ show, rank, onSelect }) {
       className="relative shrink-0 cursor-pointer group card-hover"
       style={{ width: 'clamp(96px, 22vw, 150px)' }}
     >
-      {/* Rank number */}
       <div
         className="absolute -left-1.5 sm:-left-3 md:-left-4 bottom-2 font-bebas leading-none select-none pointer-events-none z-10"
         style={{
@@ -65,7 +63,6 @@ function TopShowItem({ show, rank, onSelect }) {
         {rank}
       </div>
 
-      {/* Poster */}
       <div className="relative aspect-[2/3] rounded-lg md:rounded overflow-hidden ml-5 sm:ml-7 md:ml-10 bg-[#1a1a1a] group-hover:brightness-110 transition-all duration-200">
         {thumb ? (
           <img
@@ -84,9 +81,13 @@ function TopShowItem({ show, rank, onSelect }) {
           </div>
         )}
 
-        {badgeCfg && (
-          <span className={`absolute top-1.5 left-1 right-1 text-center text-[9px] sm:text-xs py-0.5 rounded-full font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
-            {badgeCfg.label}
+        {display && (
+          <span
+            className={`absolute top-1.5 left-1 right-1 text-center text-[9px] sm:text-xs py-0.5 rounded-full font-semibold ${
+              display.isAward ? 'bg-amber-400 text-black' : 'bg-sf-red text-white'
+            }`}
+          >
+            {display.label}
           </span>
         )}
 
@@ -99,7 +100,7 @@ function TopShowItem({ show, rank, onSelect }) {
         </div>
       </div>
 
-      <HoverPreview show={show} visible={previewVisible} anchorRect={anchorRect} />
+      <HoverPreview show={show} visible={previewVisible} anchorRect={anchorRect} onPlay={onSelect} />
     </div>
   )
 }

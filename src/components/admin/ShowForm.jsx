@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { BADGE_OPTIONS, extractYouTubeId, extractYouTubeTimestamp } from '../../lib/utils'
+import { extractYouTubeId, extractYouTubeTimestamp } from '../../lib/utils'
 import SeriesManager from './SeriesManager'
 
 const EMPTY = {
@@ -13,14 +13,15 @@ const EMPTY = {
   category_id:          '',
   youtube_id:           '',
   youtube_start:        '',
+  fb_url:               '',
   logo_url:             '',
   thumbnail_horizontal: '',
   thumbnail_vertical:   '',
   tags:                 '',
-  badge_override:       '',
+  badge_override:       '',   // now free text — admin types anything, or "none" to suppress
+  award:                '',   // NEW — free text, takes priority over badge when displayed
   is_featured:          false,
   featured_order:       0,
-  fb_url: 				'',
 }
 
 const inp = 'w-full bg-[#1f1f1f] border border-gray-700 text-white rounded px-3 py-2.5 text-sm focus:outline-none focus:border-gray-500 placeholder-gray-600'
@@ -73,14 +74,15 @@ export default function ShowForm({ show, onSaved, onCancel }) {
         category_id:          show.category_id          || '',
         youtube_id:           show.youtube_id           || '',
         youtube_start:        show.youtube_start        || '',
+        fb_url:                show.fb_url               || '',
         logo_url:             show.logo_url             || '',
         thumbnail_horizontal: show.thumbnail_horizontal || '',
         thumbnail_vertical:   show.thumbnail_vertical   || '',
         tags:                 (show.tags || []).join(', '),
         badge_override:       show.badge_override       || '',
+        award:                 show.award                || '',
         is_featured:          show.is_featured          || false,
         featured_order:       show.featured_order       || 0,
-		fb_url: 				show.fb_url 			|| '',
       })
       setYtPreview(show.youtube_id || '')
     }
@@ -101,10 +103,9 @@ export default function ShowForm({ show, onSaved, onCancel }) {
     setLoading(true)
     setError('')
 
-    // For series, youtube_id is optional (episodes carry the videos)
     const ytId = extractYouTubeId(form.youtube_id)
-    if (form.type === 'film' && !ytId) {
-      setError('Film requires a YouTube URL or ID.')
+    if (form.type === 'film' && !ytId && !form.fb_url.trim()) {
+      setError('Film requires a YouTube URL/ID or a Facebook video URL.')
       setLoading(false)
       return
     }
@@ -116,19 +117,20 @@ export default function ShowForm({ show, onSaved, onCancel }) {
       title:                form.title.trim(),
       tagline:              form.tagline.trim()              || null,
       description:          form.description.trim()          || null,
+      starring:             form.starring.trim()             || null,
       year:                 form.year ? parseInt(form.year)  : null,
       category_id:          form.category_id                 || null,
       youtube_id:           ytId || null,
       youtube_start:        startSecs,
+      fb_url:                form.fb_url.trim()                || null,
       logo_url:             form.logo_url.trim()             || null,
       thumbnail_horizontal: form.thumbnail_horizontal.trim() || null,
       thumbnail_vertical:   form.thumbnail_vertical.trim()   || null,
       tags:                 form.tags.split(',').map(t => t.trim()).filter(Boolean),
-      starring:             form.starring.trim()             || null,
-      badge_override:       form.badge_override              || null,
+      badge_override:       form.badge_override.trim()       || null,
+      award:                 form.award.trim()                 || null,
       is_featured:          form.is_featured,
       featured_order:       form.is_featured ? parseInt(form.featured_order) || 0 : 0,
-	  fb_url:				 form.fb_url.trim() 				|| null,
       updated_at:           new Date().toISOString(),
     }
 
@@ -149,7 +151,6 @@ export default function ShowForm({ show, onSaved, onCancel }) {
           <div className="bg-sf-red/10 border border-sf-red/40 text-red-400 text-sm rounded p-3">{error}</div>
         )}
 
-        {/* ── Type selector ────────────────────────────────── */}
         <div>
           <label className="block text-xs text-gray-500 uppercase tracking-wider mb-2">Type</label>
           <div className="flex gap-2">
@@ -192,30 +193,16 @@ export default function ShowForm({ show, onSaved, onCancel }) {
           </Field>
 
           <Field
-            label={form.type === 'series' ? 'YouTube ID or URL (optional — used as trailer)' : 'YouTube ID or URL *'}
+            label={form.type === 'series' ? 'YouTube ID or URL (optional — used as trailer)' : 'YouTube ID or URL'}
             hint="Paste a full URL and timestamp auto-fills"
           >
             <input
-              required={form.type === 'film'}
               value={form.youtube_id}
               onChange={e => handleYouTubeInput(e.target.value)}
               placeholder="Paste URL or raw ID"
               className={inp}
             />
           </Field>
-		  
-			<Field
-			  label="Facebook Video URL (optional)"
-			  hint="Use this instead of YouTube for Facebook-only videos/livestreams."
-			>
-			  <input
-				type="url"
-				value={form.fb_url}
-				onChange={e => set('fb_url', e.target.value)}
-				placeholder="https://www.facebook.com/watch?v=..."
-				className={inp}
-			  />
-			</Field>
 
           <Field label="Start Timestamp (seconds)" hint="Auto-parsed from URL. Override if needed.">
             <input type="number" min="0" value={form.youtube_start}
@@ -223,10 +210,19 @@ export default function ShowForm({ show, onSaved, onCancel }) {
               placeholder="e.g. 4620 = 1h17m" className={inp} />
           </Field>
 
-          <Field label="Badge">
-            <select value={form.badge_override} onChange={e => set('badge_override', e.target.value)} className={inp}>
-              {BADGE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+          <Field label="Facebook Video URL" hint="Use instead of YouTube for FB-only videos/livestreams.">
+            <input type="url" value={form.fb_url} onChange={e => set('fb_url', e.target.value)}
+              placeholder="https://www.facebook.com/watch?v=..." className={inp} />
+          </Field>
+
+          <Field label="Badge" hint='Free text — type anything, or "none" to hide the auto "Recently Added" badge.'>
+            <input value={form.badge_override} onChange={e => set('badge_override', e.target.value)}
+              placeholder="e.g. Senate Pick, or leave blank for auto" className={inp} />
+          </Field>
+
+          <Field label="Award 🏆" hint="If set, replaces the badge entirely with a gold award label.">
+            <input value={form.award} onChange={e => set('award', e.target.value)}
+              placeholder="e.g. Eme Award Winner" className={inp} />
           </Field>
 
           <Field label="Logo Image URL" hint="Custom title logo shown in hero instead of white text.">
@@ -248,6 +244,11 @@ export default function ShowForm({ show, onSaved, onCancel }) {
           </Field>
         </div>
 
+        <Field label="Starring (comma-separated)" hint="Shown in modal + hover preview. e.g. Ronald Dela Rosa, Sara Duterte">
+          <input value={form.starring} onChange={e => set('starring', e.target.value)}
+            placeholder="Name 1, Name 2, Name 3..." className={inp} />
+        </Field>
+
         <Field label="Tags (comma-separated)">
           <input value={form.tags} onChange={e => set('tags', e.target.value)}
             placeholder="ICC, Warrant, Senate, Bato" className={inp} />
@@ -258,12 +259,6 @@ export default function ShowForm({ show, onSaved, onCancel }) {
             rows={3} placeholder="Full description..." className={`${inp} resize-none`} />
         </Field>
 
-      <Field label="Starring (comma-separated)" hint="Shown in the modal. e.g. Ronald Dela Rosa, Sara Duterte">
-        <input value={form.starring} onChange={e => set('starring', e.target.value)}
-          placeholder="Name 1, Name 2, Name 3..." className={inp} />
-        </Field>
-
-        {/* Featured toggle */}
         <div className="flex items-center gap-3">
           <Toggle checked={form.is_featured} onChange={v => set('is_featured', v)} />
           <span className="text-gray-300 text-sm">Feature in Hero Carousel</span>
@@ -277,7 +272,6 @@ export default function ShowForm({ show, onSaved, onCancel }) {
           </Field>
         )}
 
-        {/* YT preview */}
         {ytPreview && (
           <div className="rounded overflow-hidden border border-gray-700/50">
             <p className="text-xs text-gray-600 px-3 py-2 bg-[#1a1a1a]">
@@ -292,7 +286,6 @@ export default function ShowForm({ show, onSaved, onCancel }) {
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading}
             className="bg-sf-red hover:bg-red-700 disabled:opacity-50 text-white font-bold px-8 py-2.5 rounded transition-colors">
@@ -305,7 +298,6 @@ export default function ShowForm({ show, onSaved, onCancel }) {
         </div>
       </form>
 
-      {/* ── Series manager (only when editing a series) ────── */}
       {form.type === 'series' && isEditing && (
         <div className="border-t border-gray-800 pt-6">
           <SeriesManager showId={show.id} />

@@ -13,36 +13,35 @@ export function getEpisodeThumbnail(episode) {
   if (episode.thumbnail) return episode.thumbnail
   return `https://img.youtube.com/vi/${episode.youtube_id}/mqdefault.jpg`
 }
-// Aliases
 export const getHorizontalThumbnail = getBannerThumbnail
 export const getVerticalThumbnail   = getPosterThumbnail
 
 // ── Badge logic ───────────────────────────────────────────────
-// 'none' = admin explicitly suppressed it
-// auto 'recently_added' = within 3 days of creation
+// badge_override is now FREE TEXT (admin can type anything, e.g. "Senate Pick").
+// 'none' (lowercase, exact match) still suppresses the badge entirely.
+// Auto "Recently Added" still applies within 3 days if no override is set.
 export function getShowBadge(show) {
   if (show.badge_override === 'none') return null
-  if (show.badge_override) return show.badge_override
+  if (show.badge_override) return show.badge_override // free text, shown as-is
   const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - 3) // 3 days
-  if (new Date(show.created_at) > cutoff) return 'recently_added'
+  cutoff.setDate(cutoff.getDate() - 3)
+  if (new Date(show.created_at) > cutoff) return 'Recently Added'
   return null
 }
 
-export const BADGE_CONFIG = {
-  recently_added: { label: 'Recently Added', bg: 'bg-sf-red',    text: 'text-white' },
-  new_episode:    { label: 'New Episode',     bg: 'bg-white',     text: 'text-black' },
-  leaving_soon:   { label: 'Leaving Soon',    bg: 'bg-amber-500', text: 'text-black' },
-  coming_soon:    { label: 'Coming Soon',     bg: 'bg-gray-600',  text: 'text-white' },
-}
+// Generic badge style — red background, used for all text badges
+// (since badges are now freeform text rather than fixed types).
+export const BADGE_STYLE = { bg: 'bg-sf-red', text: 'text-white' }
 
-export const BADGE_OPTIONS = [
-  { value: '',             label: 'Auto (recently added for 3 days)' },
-  { value: 'none',         label: 'None (hide badge)'                },
-  { value: 'new_episode',  label: 'New Episode'                      },
-  { value: 'leaving_soon', label: 'Leaving Soon'                     },
-  { value: 'coming_soon',  label: 'Coming Soon'                      },
-]
+// Award takes priority over any badge when displaying the top-left label.
+// Returns { label, isAward } so callers know which style to apply.
+export function getDisplayBadge(show) {
+  if (show.award?.trim()) {
+    return { label: `🏆 ${show.award.trim()}`, isAward: true }
+  }
+  const badge = getShowBadge(show)
+  return badge ? { label: badge, isAward: false } : null
+}
 
 // ── YouTube helpers ───────────────────────────────────────────
 export function extractYouTubeId(input) {
@@ -77,6 +76,29 @@ export function getEpisodeEmbedUrl(episode) {
   return buildEmbedUrl(episode.youtube_id, episode.youtube_start)
 }
 
+// ── Facebook video helpers ────────────────────────────────────
+const FB_APP_ID = '1276153117655984'
+
+export function isFacebookUrl(input) {
+  if (!input) return false
+  return /facebook\.com\/(watch|video|live|[\w.]+\/videos|[\w.]+\/posts)/i.test(input)
+    || /fb\.watch\//i.test(input)
+}
+export function getFacebookEmbedUrl(fbUrl) {
+  const encoded = encodeURIComponent(fbUrl)
+  return `https://www.facebook.com/plugins/video.php?href=${encoded}&app_id=${FB_APP_ID}&show_text=false&autoplay=false&width=800`
+}
+export function getVideoEmbedUrl(show) {
+  if (show.fb_url) return getFacebookEmbedUrl(show.fb_url)
+  if (show.youtube_id) return buildEmbedUrl(show.youtube_id, show.youtube_start)
+  return null
+}
+export function getEpisodeVideoEmbedUrl(episode) {
+  if (episode.fb_url) return getFacebookEmbedUrl(episode.fb_url)
+  if (episode.youtube_id) return buildEmbedUrl(episode.youtube_id, episode.youtube_start)
+  return null
+}
+
 // ── Watch progress (per-series, localStorage) ─────────────────
 export function getWatchProgress(showId) {
   try { return JSON.parse(localStorage.getItem(`sf_progress_${showId}`)) || null }
@@ -90,10 +112,9 @@ export function setWatchProgress(showId, episodeId, seasonNumber, episodeNumber)
   } catch {}
 }
 
-// ── Watch history (global list of played show IDs) ────────────
+// ── Watch history ──────────────────────────────────────────────
 const HISTORY_KEY = 'sf_history'
 const MAX_HISTORY = 30
-
 export function getWatchHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [] }
   catch { return [] }
@@ -114,45 +135,4 @@ export function formatTime(seconds) {
   const s = seconds % 60
   if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
   return `${m}:${String(s).padStart(2,'0')}`
-}
-
-// ── Facebook video helpers ────────────────────────────────────
-// Add these to your existing utils.js
-
-const FB_APP_ID = '1276153117655984'
-
-// Detects if a URL is a Facebook video/live URL
-export function isFacebookUrl(input) {
-  if (!input) return false
-  return /facebook\.com\/(watch|video|live|[\w.]+\/videos|[\w.]+\/posts)/i.test(input)
-    || /fb\.watch\//i.test(input)
-}
-
-// Builds the Facebook embed iframe src
-export function getFacebookEmbedUrl(fbUrl) {
-  const encoded = encodeURIComponent(fbUrl)
-  return `https://www.facebook.com/plugins/video.php?href=${encoded}&app_id=${FB_APP_ID}&show_text=false&autoplay=false&width=800`
-}
-
-// Updated getYouTubeEmbedUrl — now handles both YT and FB
-// Replace your existing getYouTubeEmbedUrl with this version,
-// or call this one from ShowModal instead.
-export function getVideoEmbedUrl(show) {
-  if (show.fb_url) return getFacebookEmbedUrl(show.fb_url)
-  if (show.youtube_id) {
-    let url = `https://www.youtube.com/embed/${show.youtube_id}?autoplay=1&rel=0&modestbranding=1`
-    if (show.youtube_start) url += `&start=${show.youtube_start}`
-    return url
-  }
-  return null
-}
-
-export function getEpisodeVideoEmbedUrl(episode) {
-  if (episode.fb_url) return getFacebookEmbedUrl(episode.fb_url)
-  if (episode.youtube_id) {
-    let url = `https://www.youtube.com/embed/${episode.youtube_id}?autoplay=1&rel=0&modestbranding=1`
-    if (episode.youtube_start) url += `&start=${episode.youtube_start}`
-    return url
-  }
-  return null
 }

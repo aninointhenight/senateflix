@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  getShowBadge, BADGE_CONFIG,
+  getDisplayBadge,
   getEpisodeThumbnail,
   getWatchProgress, setWatchProgress, addToWatchHistory, formatTime,
   getVideoEmbedUrl, getEpisodeVideoEmbedUrl,
@@ -93,8 +93,7 @@ function FilmModal({ show, onClose }) {
     fetchFullShow(show.id).then(data => { if (data) setFullShow(data) })
   }, [show.id])
 
-  const badge        = getShowBadge(fullShow)
-  const badgeCfg     = badge ? BADGE_CONFIG[badge] : null
+  const display       = getDisplayBadge(fullShow)
   const embedUrl     = getVideoEmbedUrl(fullShow)
   const isFB         = !!fullShow.fb_url
   const starringList = fullShow.starring?.split(',').map(s => s.trim()).filter(Boolean) || []
@@ -121,9 +120,11 @@ function FilmModal({ show, onClose }) {
           {fullShow.year && <span className="text-gray-400 text-sm shrink-0 mt-1">{fullShow.year}</span>}
         </div>
         <div className="flex flex-wrap gap-2 mb-4">
-          {badgeCfg && (
-            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
-              {badgeCfg.label}
+          {display && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              display.isAward ? 'bg-amber-400 text-black' : 'bg-sf-red text-white'
+            }`}>
+              {display.label}
             </span>
           )}
           {fullShow.categories?.name && (
@@ -208,8 +209,7 @@ function SeriesModal({ show, onClose }) {
   const currentIdx = playing ? allEps.findIndex(({ episode }) => episode.id === playing.episode.id) : -1
   const prevEntry  = currentIdx > 0 ? allEps[currentIdx - 1] : null
   const nextEntry  = currentIdx >= 0 && currentIdx < allEps.length - 1 ? allEps[currentIdx + 1] : null
-  const badge      = getShowBadge(fullShow)
-  const badgeCfg   = badge ? BADGE_CONFIG[badge] : null
+  const display    = getDisplayBadge(fullShow)
 
   return (
     <ModalShell onClose={onClose}>
@@ -301,9 +301,11 @@ function SeriesModal({ show, onClose }) {
                 <h2 className="font-bebas text-4xl text-white leading-none mb-1">{fullShow.title}</h2>
                 <div className="flex flex-wrap gap-2">
                   {fullShow.year && <span className="text-green-400 text-sm font-semibold">{fullShow.year}</span>}
-                  {badgeCfg && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
-                      {badgeCfg.label}
+                  {display && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                      display.isAward ? 'bg-amber-400 text-black' : 'bg-sf-red text-white'
+                    }`}>
+                      {display.label}
                     </span>
                   )}
                   <span className="text-xs px-2 py-0.5 rounded-full border border-white/10 text-gray-500">

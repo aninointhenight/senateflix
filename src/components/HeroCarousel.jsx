@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getBannerThumbnail, getShowBadge, BADGE_CONFIG } from '../lib/utils'
+import { getBannerThumbnail, getDisplayBadge } from '../lib/utils'
 
 const INTERVAL_MS = 7000
 
@@ -38,8 +38,7 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
   }
 
   const show     = featuredShows[idx]
-  const badge    = getShowBadge(show)
-  const badgeCfg = badge ? BADGE_CONFIG[badge] : null
+  const display  = getDisplayBadge(show)
   const catName  = show.categories?.name?.toUpperCase() || 'SERIES'
 
   return (
@@ -91,9 +90,11 @@ export default function HeroCarousel({ featuredShows, onSelectShow }) {
 
           <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-2 md:mb-3">
             {show.year && <span className="text-green-400 text-xs md:text-sm font-semibold">{show.year}</span>}
-            {badgeCfg && (
-              <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
-                {badgeCfg.label}
+            {display && (
+              <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full font-semibold ${
+                display.isAward ? 'bg-amber-400 text-black' : 'bg-sf-red text-white'
+              }`}>
+                {display.label}
               </span>
             )}
             {show.tags?.slice(0, 2).map(t => (
