@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase }            from '../../lib/supabase'
 import ShowForm                from './ShowForm'
-import { getHorizontalThumbnail, getShowBadge, BADGE_CONFIG } from '../../lib/utils'
+import { getHorizontalThumbnail, getDisplayBadge } from '../../lib/utils'
 
 export default function ShowsManager() {
   const [shows,      setShows]      = useState([])
@@ -84,9 +84,8 @@ export default function ShowsManager() {
       ) : (
         <div className="space-y-2">
           {filtered.map(show => {
-            const badge    = getShowBadge(show)
-            const badgeCfg = badge ? BADGE_CONFIG[badge] : null
-            const thumb    = getHorizontalThumbnail(show)
+            const display = getDisplayBadge(show)
+            const thumb   = getHorizontalThumbnail(show)
 
             return (
               <div
@@ -111,9 +110,11 @@ export default function ShowsManager() {
                         Hero
                       </span>
                     )}
-                    {badgeCfg && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${badgeCfg.bg} ${badgeCfg.text}`}>
-                        {badgeCfg.label}
+                    {display && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
+                        display.isAward ? 'bg-amber-400 text-black' : 'bg-sf-red text-white'
+                      }`}>
+                        {display.label}
                       </span>
                     )}
                   </div>
