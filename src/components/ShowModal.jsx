@@ -29,26 +29,25 @@ function ModalShell({ onClose, children }) {
   const overlayRef = useRef(null)
 
   useEffect(() => {
-    // Robust scroll lock: preserve scroll position instead of just hiding overflow.
-    // Prevents the modal from appearing to "drift" to top/bottom based on
-    // where the page was scrolled when it opened.
-    const scrollY = window.scrollY
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.left = '0'
-    document.body.style.right = '0'
-    document.body.style.width = '100%'
+    // Simple overflow-based scroll lock. A previous version used
+    // position:fixed + negative top-offset on the body, but that
+    // interacted badly with the modal's own position:fixed — both
+    // establish fixed-positioning contexts simultaneously, which made
+    // the modal anchor near the top of the page instead of the current
+    // viewport. Plain overflow:hidden on html+body avoids that entirely.
+    const html = document.documentElement
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverflow = document.body.style.overflow
+
+    html.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
 
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
 
     return () => {
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.left = ''
-      document.body.style.right = ''
-      document.body.style.width = ''
-      window.scrollTo(0, scrollY)
+      html.style.overflow = prevHtmlOverflow
+      document.body.style.overflow = prevBodyOverflow
       window.removeEventListener('keydown', onKey)
     }
   }, [onClose])
@@ -93,7 +92,7 @@ function FilmModal({ show, onClose }) {
     fetchFullShow(show.id).then(data => { if (data) setFullShow(data) })
   }, [show.id])
 
-  const display       = getDisplayBadge(fullShow)
+  const display      = getDisplayBadge(fullShow)
   const embedUrl     = getVideoEmbedUrl(fullShow)
   const isFB         = !!fullShow.fb_url
   const starringList = fullShow.starring?.split(',').map(s => s.trim()).filter(Boolean) || []
@@ -226,7 +225,6 @@ function SeriesModal({ show, onClose }) {
               allowFullScreen />
           </div>
 
-          {/* Nav bar with glass */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5"
             style={{ background: 'rgba(255,255,255,0.03)' }}>
             <button onClick={() => setView('list')}
